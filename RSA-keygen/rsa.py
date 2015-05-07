@@ -1,7 +1,7 @@
 from fractions import gcd
 import random
 import math
-
+import sys
 
 class RSA:
 
@@ -34,6 +34,24 @@ class RSA:
 
 
 
+        def rabin_miller(self,p):
+                if(p<2):
+                        return False
+                if(p!=2 and p%2==0):
+                        return False
+                s=p-1
+                while(s%2==0):
+                        s = s>>1
+                for i in range(10):
+                        a=random.randrange(p-1)+1
+                        temp=s
+                        mod=pow(a,temp,p)
+                        while(temp!=p-1 and mod!=1 and mod!=p-1):
+                                mod=(mod*mod)%p
+                                temp=temp*2
+                        if(mod!=p-1 and temp%2==0):
+                                return False
+                return True
 
         def fermatTest(self,N):
                 for i in range(2, N-1):
@@ -45,24 +63,23 @@ class RSA:
         def find_prime(self,iNumBits, iConfidence):
                 #keep testing until one is found
                 while(1):
-                        #generate potential prime randomly
-                        p = random.randint( 2**(iNumBits-2), 2**(iNumBits-1) )
-                        #make sure it is odd
-                        while( p % 2 == 0 ):
-                                p = random.randint(2**(iNumBits-2),2**(iNumBits-1))
-
-                        #keep doing this if the solovay-strassen test fails
-                        while( not self.fermatTest(p) ):
-                                p = random.randint( 2**(iNumBits-2), 2**(iNumBits-1) )
+                        p = random.randint( 2**(iNumBits-1), 2**(iNumBits) )
+                        while( not self.rabin_miller(p) ):
+                                p = random.randint( 2**(iNumBits-1), 2**(iNumBits) )
+                                print('.',end='')
                                 while( p % 2 == 0 ):
-                                        p = random.randint(2**(iNumBits-2), 2**(iNumBits-1))
+                                        print('+',end='')
+                                        p = random.randint(2**(iNumBits-1), 2**(iNumBits))
                         #if p is prime cryptptompute p = 2*p + 1
                         #if p is prime, we have succeeded; else, start over
-                        p = p * 2 + 1
-                        if self.fermatTest(p):
-                                return p
-                        else:
-                                find_prime(iNumBits,iConfidence+1)
+                        # print("Almost found...")
+                        # p = p * 2 + 1
+                        # if self.rabin_miller(p):
+                        print("Found !!!")
+                        return p
+                        # else:
+                        #         print("oh crap !!")
+                        #         self.find_prime(iNumBits,iConfidence+1)
 
 
         def checkRandNum(self):
@@ -91,33 +108,28 @@ class RSA:
         def generateKeys(self):
                 while not self.checkRandNum() :
                         print('-> Nouvelle tentative')
-                        self.__p = self.find_prime(self.__iNumBits//2, self.__iConfidence)
-                        self.__q = self.find_prime(self.__iNumBits//2, self.__iConfidence)
+                        if self.__p == 1:
+                                self.__p = self.find_prime(self.__iNumBits//2, self.__iConfidence)
+                        if self.__q == 1:
+                                self.__q = self.find_prime(self.__iNumBits//2, self.__iConfidence)
                         self.__n = self.__p * self.__q
                         self.__indicatrice = (self.__p - 1) * (self.__q - 1)
                         self.__d = self.modinv(self.__e,self.__indicatrice)
+                print(self.__p,end="\n\n")
+                print(self.__q,end="\n\n")
+                print(self.__p*self.__q,end="\n\n")
 
         def getPubKey(self):
-                return self.__n
+                return self.__e
 
         def getPrivKey(self):
                 return self.__d
 
         def getN(self):
                 return self.__n
-        def modpow(self,base, exponent, mod):
-        #Computes base^exponent mod mod using repeated squaring
-                ans = 1
-                index = 0
-                while(1 << index <= exponent):
-                        if(exponent & (1 << index)):
-                                ans = (ans * base) % mod
-                        index += 1
-                        base = (base * base) % mod
-                return ans
 
         def modexp(self,m,p,n):
-                return self.modpow(m,p,n)
+                return pow(m,p,n)
 
 
         def encrypt(self,m,PK=None,n=None):
